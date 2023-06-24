@@ -146,18 +146,18 @@ def validation_report(file_path, file_format, schema_file, schema_format, output
                 fout.write(report_text)
     return
 
-# Parse input
-parser = argparse.ArgumentParser()
-parser.add_argument("--file", "-f", help="File(s) of the RDF graph(s) to be validated (list[str] | str ): please use comma (no space) to split multiple file paths (e.g. file1,file2,file3).")
-parser.add_argument("--schema", "-s", help="Schema of the RDF graph, i.e., Shapes Constraint Language (SHACL) graph (str): path of the file.")
-parser.add_argument("--fileformat", "-ff", help="File format(s) of the RDF graph(s) to be validated (list[str] | str ). Orders should be consistent with the input of --file. Default format is json-ld. If all input files have the same format, only need to write once.")
-parser.add_argument("--schemaformat", "-sf", default="ttl", choices=["xml", "n3", "turtle", "nt", "pretty-xml", "trix", "trig", "nquads", "json-ld", "hext"], help="File format of the schema (str). Default format is ttl.")
-parser.add_argument("--mappings", "-m", help="File of the mappings to shorten the report (str): path of the JSON file, where the key is the original text and the value is the shorter text.")
-parser.add_argument("--output", "-o", help="File(s) of the output, validation report (list[str] | str ). If no value, then output will be a string. Please use comma (no space) to split multiple file paths (e.g. file1,file2,file3).")
-parser.add_argument("--outputformat", "-of", help="File format(s) of the output, validation report (list[str] | str ).  Orders should be consistent with the input of --output. Default format is txt. Each item can only be one of {txt,png}. Please use comma (no space) to split multiple formats (e.g. format1,format2,format3). If all output files have the same format, only need to write once.")
-arg_file, arg_schema, arg_fileformat, arg_schemaformat, arg_mappings, arg_outputformat, arg_output = parser.parse_args().file, parser.parse_args().schema, parser.parse_args().fileformat, parser.parse_args().schemaformat, parser.parse_args().mappings, parser.parse_args().outputformat, parser.parse_args().output
+def main():
+    # Parse input
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--file", "-f", help="File(s) of the RDF graph(s) to be validated (list[str] | str ): please use comma (no space) to split multiple file paths (e.g. file1,file2,file3).")
+    parser.add_argument("--schema", "-s", help="Schema of the RDF graph, i.e., Shapes Constraint Language (SHACL) graph (str): path of the file.")
+    parser.add_argument("--fileformat", "-ff", help="File format(s) of the RDF graph(s) to be validated (list[str] | str ). Orders should be consistent with the input of --file. Default format is json-ld. If all input files have the same format, only need to write once.")
+    parser.add_argument("--schemaformat", "-sf", default="ttl", choices=["xml", "n3", "turtle", "nt", "pretty-xml", "trix", "trig", "nquads", "json-ld", "hext"], help="File format of the schema (str). Default format is ttl.")
+    parser.add_argument("--mappings", "-m", help="File of the mappings to shorten the report (str): path of the JSON file, where the key is the original text and the value is the shorter text.")
+    parser.add_argument("--output", "-o", help="File(s) of the output, validation report (list[str] | str ). If no value, then output will be a string. Please use comma (no space) to split multiple file paths (e.g. file1,file2,file3).")
+    parser.add_argument("--outputformat", "-of", help="File format(s) of the output, validation report (list[str] | str ).  Orders should be consistent with the input of --output. Default format is txt. Each item can only be one of {txt,png}. Please use comma (no space) to split multiple formats (e.g. format1,format2,format3). If all output files have the same format, only need to write once.")
+    arg_file, arg_schema, arg_fileformat, arg_schemaformat, arg_mappings, arg_outputformat, arg_output = parser.parse_args().file, parser.parse_args().schema, parser.parse_args().fileformat, parser.parse_args().schemaformat, parser.parse_args().mappings, parser.parse_args().outputformat, parser.parse_args().output
 
-if __name__ == "__main__":
     if not arg_file:
         parser.error("File(s) of the RDF graph(s) to be validated are missing. Please add: --file.")
     if not arg_schema:
@@ -180,3 +180,6 @@ if __name__ == "__main__":
 
     for file_path, file_format, output_path, output_format in zip(file_paths, file_formats, output_paths, output_formats):
         validation_report(file_path, file_format, arg_schema, arg_schemaformat, output_path, output_format, arg_mappings)
+
+if __name__ == "__main__":
+    main()
