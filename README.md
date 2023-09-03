@@ -18,7 +18,7 @@ Where
 - `-s` is the path of the the RDF graph's schema
 - `-sf` is the format of the RDF graph's schema
 - `-m` is the path of mappings to shorten the report
-- `-o` is the path of the validation report (also supports multiple files when we have multiple RDF graph files)
+- `-o` is the path of the validation report without extension (also supports multiple files when we have multiple RDF graph files)
 - `-of` is the format of the validation report (also supports multiple file formats when we have multiple RDF graph files)
 
 Full CLI Usage Options:
@@ -42,7 +42,7 @@ optional arguments:
   --mappings MAPPINGS, -m MAPPINGS
                         File of the mappings to shorten the report (str): path of the JSON file, where the key is the original text and the value is the shorter text.
   --output OUTPUT, -o OUTPUT
-                        File(s) of the output, validation report (list[str] | str ). If no value, then output will be a string. Please use comma (no space) to split
+                        Path(s) of the validation report without extension (list[str] | str ). If no value, then output will be a string. Please use comma (no space) to split
                         multiple file paths (e.g. file1,file2,file3).
   --outputformat OUTPUTFORMAT, -of OUTPUTFORMAT
                         File format(s) of the output, validation report (list[str] | str ). Orders should be consistent with the input of --output. Default format is
@@ -65,10 +65,10 @@ Where
 - `schema` is the file path (string) of the RDF graph's schema
 - `schema_format` is the format (string) of the schema file
 - `output_path` is the file path (string) of the validation report
-- `output_format` is the format (string) of the validation report, i.e., `txt` or `png`
+- `output_format` is the format (string) of the validation report, i.e., `txt` or `png` or `gv`
 - `mappings` is the mappings (dictionary) to shorten the report
 
 The return value is `None`.
 
-The output will be either a `txt` file, a `png` file, or a `string` print in Bash.
+The output will be either a `txt` file, a `png` file, a `gv` file, or a `string` print in Bash.
 

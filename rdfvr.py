@@ -4,7 +4,13 @@ from pyshacl import validate
 from rdflib import Graph
 import pygraphviz as pgv
 import pandas as pd
-import argparse, subprocess, json
+import argparse, json, os
+
+def ensure_dir_exists(file_path):
+    dir_path = os.path.split(file_path)[0]
+    if (dir_path != '') and (not os.path.isdir(dir_path)):
+        os.makedirs(dir_path)
+    return
 
 def load_file(file_path, graph_format="json-ld"):
     """
@@ -87,6 +93,7 @@ def process_graph(rdf_graph, mappings, errors):
             WHERE {
                 ?s ?p ?o
             }
+            ORDER BY ?s ?p ?o
         """
     rows = []
     for r in rdf_graph.query(q):
@@ -97,20 +104,20 @@ def process_graph(rdf_graph, mappings, errors):
 
 def visualize_graph_as_dot(rdf_graph_processed, errors_with_suggested_nodes):
     # Create a directed graph
-    g_dot = pgv.AGraph(directed=True)
+    G = pgv.AGraph(directed=True)
     # Add nodes and edges
     for _, row in rdf_graph_processed.iterrows():
-        g_dot.add_node(row["source"], shape="box", style="filled, rounded", fillcolor="#b3e2cd")
-        g_dot.add_node(row["target"], shape="box", style="filled, rounded", fillcolor="#b3e2cd")
-        g_dot.add_edge(row["source"], row["target"], label=row["label"])
+        G.add_node(row["source"], shape="box", style="filled, rounded", fillcolor="#b3e2cd")
+        G.add_node(row["target"], shape="box", style="filled, rounded", fillcolor="#b3e2cd")
+        G.add_edge(row["source"], row["target"], label=row["label"])
     for _, row in errors_with_suggested_nodes[["node", "msg"]].drop_duplicates().iterrows():
-        g_dot.add_node(row["node"], shape="box", style="filled, rounded", fillcolor="#fdccac")
-        g_dot.add_node(row["msg"], shape="box", style="filled, rounded, dashed", fillcolor="#fdccac")
-        g_dot.add_edge(row["node"], row["msg"], label="ErrorMsg", style="dashed")
+        G.add_node(row["node"], shape="box", style="filled, rounded", fillcolor="#fdccac")
+        G.add_node(row["msg"], shape="box", style="filled, rounded, dashed", fillcolor="#fdccac")
+        G.add_edge(row["node"], row["msg"], label="ErrorMsg", style="dashed")
     # Suggested nodes to be updated
     for suggested_node in errors_with_suggested_nodes["target"].dropna().unique():
-        g_dot.add_node(suggested_node, shape="box", style="filled, rounded", fillcolor="#cbd5e8")
-    return g_dot
+        G.add_node(suggested_node, shape="box", style="filled, rounded", fillcolor="#cbd5e8")
+    return G
 
 def report_graph_as_txt(errors_with_suggested_nodes):
     report_text = ""
@@ -128,15 +135,20 @@ def validation_report(file_path, file_format, schema_file, schema_format, output
     # Find the suggested error nodes
     (rdf_graph_processed, errors_with_suggested_nodes) = process_graph(rdf_graph, mappings, errors)
     # Output
-    if output_format not in ["txt", "png"]:
-        raise ValueError("The output file format can only be one of {txt, png}, but " + str(output_format) + " was given. Please check --outputformat.")
-    
-    if output_format == "png":
-        g_dot = visualize_graph_as_dot(rdf_graph_processed, errors_with_suggested_nodes)
-        dot_path = output_path + ".dot"
-        g_dot.write(dot_path)
-        subprocess.run(["dot", "-Tpng", dot_path, "-o", output_path])
-    else:
+    if output_format not in ["txt", "png", "gv"]:
+        raise ValueError("The output file format can only be one of {txt, png, gv}, but " + str(output_format) + " was given. Please check --outputformat.")
+
+    if output_path:
+        output_path = output_path + "." + output_format
+        ensure_dir_exists(output_path)
+    if output_format == "png" or output_format == "gv":
+        G = visualize_graph_as_dot(rdf_graph_processed, errors_with_suggested_nodes)
+        if output_format == "png":
+            G.layout(prog="dot")
+            G.draw(output_path)
+        else: # gv
+            G.write(output_path)
+    else: # txt
         report_text = report_graph_as_txt(errors_with_suggested_nodes)
         if not output_path:
             # If NO --output, print a string
@@ -154,8 +166,8 @@ def main():
     parser.add_argument("--fileformat", "-ff", help="File format(s) of the RDF graph(s) to be validated (list[str] | str ). Orders should be consistent with the input of --file. Default format is json-ld. If all input files have the same format, only need to write once.")
     parser.add_argument("--schemaformat", "-sf", default="ttl", choices=["xml", "n3", "turtle", "nt", "pretty-xml", "trix", "trig", "nquads", "json-ld", "hext"], help="File format of the schema (str). Default format is ttl.")
     parser.add_argument("--mappings", "-m", help="File of the mappings to shorten the report (str): path of the JSON file, where the key is the original text and the value is the shorter text.")
-    parser.add_argument("--output", "-o", help="File(s) of the output, validation report (list[str] | str ). If no value, then output will be a string. Please use comma (no space) to split multiple file paths (e.g. file1,file2,file3).")
-    parser.add_argument("--outputformat", "-of", help="File format(s) of the output, validation report (list[str] | str ).  Orders should be consistent with the input of --output. Default format is txt. Each item can only be one of {txt,png}. Please use comma (no space) to split multiple formats (e.g. format1,format2,format3). If all output files have the same format, only need to write once.")
+    parser.add_argument("--output", "-o", help="Path(s) of the validation report without extension (list[str] | str ). If no value, then output will be a string. Please use comma (no space) to split multiple file paths (e.g. file1,file2,file3).")
+    parser.add_argument("--outputformat", "-of", help="File format(s) of the output, validation report (list[str] | str ).  Orders should be consistent with the input of --output. Default format is txt. Each item can only be one of {txt,png,gv}. Please use comma (no space) to split multiple formats (e.g. format1,format2,format3). If all output files have the same format, only need to write once.")
     arg_file, arg_schema, arg_fileformat, arg_schemaformat, arg_mappings, arg_outputformat, arg_output = parser.parse_args().file, parser.parse_args().schema, parser.parse_args().fileformat, parser.parse_args().schemaformat, parser.parse_args().mappings, parser.parse_args().outputformat, parser.parse_args().output
 
     if not arg_file:
