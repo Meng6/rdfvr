@@ -122,7 +122,7 @@ def visualize_graph_as_dot(rdf_graph_processed, errors_with_suggested_nodes):
 def report_graph_as_txt(errors_with_suggested_nodes):
     report_text = ""
     for _, row in errors_with_suggested_nodes.groupby(["node", "msg"])["target"].agg(list).reset_index().iterrows():
-        report_text = report_text + "Node: {node} \nError Message: {msg}\nSuggested Node(s) to be Updated: {suggested_node}\n\n".format(node=row["node"], msg=row["msg"], suggested_node=", ".join(row["target"]))
+        report_text = report_text + "Node: {node} \nError Message: {msg}\nSuggested Node(s) to be Updated: {suggested_node}\n\n".format(node=row["node"], msg=row["msg"], suggested_node=str(row["target"]))
     return report_text
 
 def validation_report(file_path, file_format, schema_file, schema_format, output_path, output_format, mappings):

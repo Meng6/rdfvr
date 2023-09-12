@@ -1,0 +1,5 @@
+build
+dist
+rdfvr.egg-info
+setup.py
+.DS_Store

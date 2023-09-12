@@ -64,7 +64,7 @@ Where
 - `file_format` is the format (string) of the RDF graph file
 - `schema` is the file path (string) of the RDF graph's schema
 - `schema_format` is the format (string) of the schema file
-- `output_path` is the file path (string) of the validation report
+- `output_path` is the file path (string) of the validation report without extension
 - `output_format` is the format (string) of the validation report, i.e., `txt` or `png` or `gv`
 - `mappings` is the mappings (dictionary) to shorten the report
 
