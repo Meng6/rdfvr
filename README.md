@@ -46,7 +46,7 @@ optional arguments:
                         multiple file paths (e.g. file1,file2,file3).
   --outputformat OUTPUTFORMAT, -of OUTPUTFORMAT
                         File format(s) of the output, validation report (list[str] | str ). Orders should be consistent with the input of --output. Default format is
-                        txt. Each item can only be one of {txt,png}. Please use comma (no space) to split multiple formats (e.g. format1,format2,format3). If all
+                        txt. Each item can only be one of {txt,png,svg,gv}. Please use comma (no space) to split multiple formats (e.g. format1,format2,format3). If all
                         output files have the same format, only need to write once.
 
 ```
@@ -65,10 +65,10 @@ Where
 - `schema` is the file path (string) of the RDF graph's schema
 - `schema_format` is the format (string) of the schema file
 - `output_path` is the file path (string) of the validation report without extension
-- `output_format` is the format (string) of the validation report, i.e., `txt` or `png` or `gv`
+- `output_format` is the format (string) of the validation report, i.e., `txt` or `png` or `svg` or `gv`
 - `mappings` is the mappings (dictionary) to shorten the report
 
 The return value is `None`.
 
-The output will be either a `txt` file, a `png` file, a `gv` file, or a `string` print in Bash.
+The output will be either a `txt` file, a `png` file, a `svg` file, a `gv` file, or a `string` print in Bash.
 

@@ -135,17 +135,16 @@ def validation_report(file_path, file_format, schema_file, schema_format, output
     # Find the suggested error nodes
     (rdf_graph_processed, errors_with_suggested_nodes) = process_graph(rdf_graph, mappings, errors)
     # Output
-    if output_format not in ["txt", "png", "gv"]:
-        raise ValueError("The output file format can only be one of {txt, png, gv}, but " + str(output_format) + " was given. Please check --outputformat.")
+    if output_format not in ["txt", "png", "svg", "gv"]:
+        raise ValueError("The output file format can only be one of {txt, png, svg, gv}, but " + str(output_format) + " was given. Please check --outputformat.")
 
     if output_path:
         output_path = output_path + "." + output_format
         ensure_dir_exists(output_path)
-    if output_format == "png" or output_format == "gv":
+    if output_format == "png" or output_format == "svg" or output_format == "gv":
         G = visualize_graph_as_dot(rdf_graph_processed, errors_with_suggested_nodes)
-        if output_format == "png":
-            G.layout(prog="dot")
-            G.draw(output_path)
+        if output_format == "png" or output_format == "svg":
+            G.draw(output_path, prog="dot")
         else: # gv
             G.write(output_path)
     else: # txt
@@ -167,7 +166,7 @@ def main():
     parser.add_argument("--schemaformat", "-sf", default="ttl", choices=["xml", "n3", "turtle", "nt", "pretty-xml", "trix", "trig", "nquads", "json-ld", "hext"], help="File format of the schema (str). Default format is ttl.")
     parser.add_argument("--mappings", "-m", help="File of the mappings to shorten the report (str): path of the JSON file, where the key is the original text and the value is the shorter text.")
     parser.add_argument("--output", "-o", help="Path(s) of the validation report without extension (list[str] | str ). If no value, then output will be a string. Please use comma (no space) to split multiple file paths (e.g. file1,file2,file3).")
-    parser.add_argument("--outputformat", "-of", help="File format(s) of the output, validation report (list[str] | str ).  Orders should be consistent with the input of --output. Default format is txt. Each item can only be one of {txt,png,gv}. Please use comma (no space) to split multiple formats (e.g. format1,format2,format3). If all output files have the same format, only need to write once.")
+    parser.add_argument("--outputformat", "-of", help="File format(s) of the output, validation report (list[str] | str ).  Orders should be consistent with the input of --output. Default format is txt. Each item can only be one of {txt,png,svg,gv}. Please use comma (no space) to split multiple formats (e.g. format1,format2,format3). If all output files have the same format, only need to write once.")
     arg_file, arg_schema, arg_fileformat, arg_schemaformat, arg_mappings, arg_outputformat, arg_output = parser.parse_args().file, parser.parse_args().schema, parser.parse_args().fileformat, parser.parse_args().schemaformat, parser.parse_args().mappings, parser.parse_args().outputformat, parser.parse_args().output
 
     if not arg_file:
