@@ -64,7 +64,7 @@ def extract_errors(results_graph, mappings):
         WHERE {
             ?curr_node :focusNode ?focus .
             ?curr_node :resultMessage ?msg .
-            ?curr_node :resultPath ?path.
+            OPTIONAL { ?curr_node :resultPath ?path. }
             OPTIONAL { ?curr_node :detail ?child_node. }
             FILTER (!bound(?child_node))
         }
