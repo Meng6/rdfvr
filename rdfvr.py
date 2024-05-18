@@ -2,7 +2,8 @@
 
 from pyshacl import validate
 from rdflib import Graph
-import pygraphviz as pgv
+import networkx as nx
+from pyvis.network import Network
 import pandas as pd
 import textwrap, argparse, json, os
 
@@ -99,21 +100,36 @@ def graph(rdf_graph, mappings):
     rdf_graph_processed = pd.DataFrame(rows, columns=["source", "label", "target"]).replace(mappings, regex=True)
     return rdf_graph_processed
 
-def visualize_graph_as_dot(rdf_graph_processed, errors):
+def visualize_graph(rdf_graph_processed, errors):
+    """
+    This function is to visualize the RDF graph with errors
+    :param rdf_graph_processed: a Pandas data frame with source, label, and target columns
+    :param errors: a Pandas data frame with node, msg, and target columns
+    :return G: a directed graph (a networkx.Graph instance)
+    """
     # Create a directed graph
-    G = pgv.AGraph(directed=True)
-    # Add nodes and edges
-    for _, row in rdf_graph_processed.iterrows():
-        G.add_node(row["source"], shape="box", style="filled, rounded", fillcolor="#b3e2cd")
-        G.add_node(row["target"], shape="box", style="filled, rounded", fillcolor="#b3e2cd")
-        G.add_edge(row["source"], row["target"], label=row["label"])
-    for _, row in errors[["node", "msg"]].drop_duplicates().iterrows():
-        G.add_node(row["node"], shape="box", style="filled, rounded", fillcolor="#fdccac")
-        G.add_node(row["msg"], shape="box", style="filled, rounded, dashed", fillcolor="#fdccac")
-        G.add_edge(row["node"], row["msg"], label="ErrorMsg", style="dashed")
-    # Suggested nodes to be updated
-    for suggested_node in errors["target"].dropna().unique():
-        G.add_node(suggested_node, shape="box", style="filled, rounded", fillcolor="#cbd5e8")
+    G = nx.DiGraph()
+    node_colors = {}
+    # Add edges from the processed RDF graph
+    rdf_graph_processed["edge"] = rdf_graph_processed.apply(lambda row: (row["source"], row["target"], {"title": row["label"]}), axis=1)
+    G.add_edges_from(rdf_graph_processed["edge"].tolist())
+    nodes = set(rdf_graph_processed["source"].tolist())
+    nodes.update(set(rdf_graph_processed["target"].tolist()))
+    for node in nodes:
+        node_colors[node] = "#b3e2cd"
+    # Add edges from the errors
+    errors["edge"] = errors.apply(lambda row: (row["node"], row["msg"], {"title": "ErrorMsg", "color": "#fdccac"}), axis=1)
+    G.add_edges_from(errors["edge"].tolist())
+    for node in set(errors["msg"].tolist()):
+        node_colors[node] = "#fdccac"
+    for node in set(errors["target"].tolist()):
+        node_colors[node] = "#ffcccb"
+    # Update node attributes
+    for node in G.nodes:
+        G.nodes[node]["label"] = str(node)
+        G.nodes[node]["shape"] = "box"
+        G.nodes[node]["shapeProperties"] = {"borderRadius": 5}  # Add borderRadius for rounded corners
+        G.nodes[str(node)]["color"] = node_colors[node]
     return G
 
 def report_graph_as_txt(errors):
@@ -132,9 +148,7 @@ def report_graph_as_txt(errors):
 def validation_report(file_path, file_format, schema_file, schema_format, output_path, output_format, mappings):
     info = """Path of the RDF graph to be validated: {file_path}
 Path of the SHACL file: {schema_file}
-Datetime: {datetime}
-
-""".format(file_path=file_path, schema_file=schema_file, datetime=pd.Timestamp.now())
+Datetime: {datetime}""".format(file_path=file_path, schema_file=schema_file, datetime=pd.Timestamp.now())
     # Load a file with a given format as a RDF Graph object supported by RDFLib
     rdf_graph = load_file(file_path, graph_format=file_format)
     # Validate the RDF graph
@@ -142,22 +156,45 @@ Datetime: {datetime}
     # Find the most important errors
     errors = extract_errors(results_graph, mappings)
     # Output
-    if output_format not in ["txt", "png", "svg", "gv"]:
-        raise ValueError("The output file format can only be one of {txt, png, svg, gv}, but " + str(output_format) + " was given. Please check --outputformat.")
+    if output_format not in ["txt", "html"]:
+        raise ValueError("The output file format can only be one of {txt, html}, but " + str(output_format) + " was given. Please check --outputformat.")
 
     if output_path:
         output_path = output_path + "." + output_format
         ensure_dir_exists(output_path)
-    if output_format == "png" or output_format == "svg" or output_format == "gv":
+    if output_format == "html":
         print(info)
         rdf_graph_processed = graph(rdf_graph, mappings)
-        G = visualize_graph_as_dot(rdf_graph_processed, errors)
-        if output_format == "png" or output_format == "svg":
-            G.draw(output_path, prog="dot")
-        else: # gv
-            G.write(output_path)
+        G = visualize_graph(rdf_graph_processed.map(str), errors.map(str))
+        # Load the networkx.Graph instance
+        nt = Network(height="100%", width="100%", notebook=False, directed=True, select_menu=True, cdn_resources="remote")
+        nt.from_nx(G)
+        # Update attributes such as edges, layout, etc.
+        nt.set_options("""
+            {
+                "physics": {"barnesHut": {"overlap": 1}},
+                    "interaction": {
+                        "hover": true,
+                        "tooltipDelay": 200,
+                        "hideEdgesOnDrag": true,
+                        "hideNodesOnDrag": false
+                    },
+                    "edges": {
+                    "width": 1,
+                    "selectionWidth": 5,
+                    "hoverWidth": 5
+                },
+                "layout": {
+                    "hierarchical": {
+                        "direction": "LR",
+                        "sortMethod": "directed"
+                    }
+                }
+            }
+        """)
+        nt.save_graph(output_path)
     else: # txt
-        report_text = info + report_graph_as_txt(errors)
+        report_text = info + "\n\n" + report_graph_as_txt(errors)
         if not output_path:
             # If NO --output, print a string
             print(report_text)
@@ -175,7 +212,7 @@ def main():
     parser.add_argument("--schemaformat", "-sf", default="ttl", choices=["xml", "n3", "turtle", "nt", "pretty-xml", "trix", "trig", "nquads", "json-ld", "hext"], help="File format of the schema (str). Default format is ttl.")
     parser.add_argument("--mappings", "-m", help="File of the mappings to shorten the report (str): path of the JSON file, where the key is the original text and the value is the shorter text.")
     parser.add_argument("--output", "-o", help="Path(s) of the validation report without extension (list[str] | str ). If no value, then output will be a string. Please use comma (no space) to split multiple file paths (e.g. file1,file2,file3).")
-    parser.add_argument("--outputformat", "-of", help="File format(s) of the output, validation report (list[str] | str ).  Orders should be consistent with the input of --output. Default format is txt. Each item can only be one of {txt,png,svg,gv}. Please use comma (no space) to split multiple formats (e.g. format1,format2,format3). If all output files have the same format, only need to write once.")
+    parser.add_argument("--outputformat", "-of", help="File format(s) of the output, validation report (list[str] | str ).  Orders should be consistent with the input of --output. Default format is txt. Each item can only be one of {txt,html}. Please use comma (no space) to split multiple formats (e.g. format1,format2,format3). If all output files have the same format, only need to write once.")
     arg_file, arg_schema, arg_fileformat, arg_schemaformat, arg_mappings, arg_outputformat, arg_output = parser.parse_args().file, parser.parse_args().schema, parser.parse_args().fileformat, parser.parse_args().schemaformat, parser.parse_args().mappings, parser.parse_args().outputformat, parser.parse_args().output
 
     if not arg_file:
