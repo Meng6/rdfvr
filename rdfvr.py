@@ -167,7 +167,7 @@ Datetime: {datetime}""".format(file_path=file_path, schema_file=schema_file, dat
         rdf_graph_processed = graph(rdf_graph, mappings)
         G = visualize_graph(rdf_graph_processed.map(str), errors.map(str))
         # Load the networkx.Graph instance
-        nt = Network(height="100%", width="100%", notebook=False, directed=True, select_menu=True, cdn_resources="remote")
+        nt = Network(height="50vw", width="100%", notebook=False, directed=True, select_menu=True, cdn_resources="remote")
         nt.from_nx(G)
         # Update attributes such as edges, layout, etc.
         nt.set_options("""

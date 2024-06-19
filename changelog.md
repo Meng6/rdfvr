@@ -10,3 +10,7 @@
 
 - Update visualizations: supports `txt` and `html` output formats
 - Replace `PyGraphviz` with `NetworkX` and `PyVis` packages
+
+## v0.3.4
+
+- Update the height of graph for the `html` output. Make the visualization full-screen for both MacOS and Windows.
